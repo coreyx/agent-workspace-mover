@@ -36,7 +36,7 @@ Once this is done, the workspace builds and tests in CI on all three OSes, and e
     5. F-5: record the process names, executable paths and argument patterns of the native CLI, an npm-installed CLI if available, the VS Code extension and the desktop app, from a process listing. Never read `sessions/*.json` contents.
     6. Write the results into a short findings note in the spec folder, linked from design.md's facts table. Raise any fact that contradicts the design with the owner before TASK-12 starts.
 
-- [ ] **TASK-3: Verify VS Code facts F-6 and F-7**
+- [x] **TASK-3: Verify VS Code facts F-6 and F-7**
   - **Associated Acceptance Criteria**: none (discovery; results update design.md's facts table and the VS Code adapter's declared verification)
   - **Concrete Steps**:
     1. F-6: in a throwaway script, compute the workspace storage id for every folder in `workspaceStorage/*/workspace.json` on this machine, using VS Code's formula (MD5 of `fsPath` followed by its creation time). Record how many match their folder name, and the exact `fsPath` form that matches, including the drive-letter case. Read only.

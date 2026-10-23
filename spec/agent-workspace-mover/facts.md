@@ -65,9 +65,49 @@ A session run in a worktree at `<repo>\.claude\worktrees\wt1`:
 - Native CLI processes were started from `cmd.exe` or PowerShell, some with `--resume`.
 - **Not path-keyed, newly seen:** `~/.claude/session-env/<session id>/`, an empty folder per session. Like `file-history/`, it's keyed by session, so it survives a move unchanged.
 
-## VS Code (TASK-3)
+## VS Code (TASK-3), 2026-10-23
 
-Not yet checked.
+Version seen: VS Code 1.143.0 (stable, user install). All checks were read only, on copies of the databases, which were deleted afterwards.
+
+### F-6: the workspace storage id formula. Confirmed on real data.
+
+```
+id = md5( fsPath + String(Math.floor(birthtimeMs)) )   (hex)
+```
+
+- `fsPath` is the form VS Code's `URI.fsPath` gives for the folder's `file://` URI. On Windows that's backslashes, with the **drive letter lowercase** as in the URI (`c:\…`).
+- Of 64 `workspaceStorage` folders: 62 were single-folder workspaces and 2 were multi-root workspaces (`workspace.json` names a `.code-workspace` file rather than a folder).
+- Of the 62, 20 named a folder that no longer exists. Those are orphans, for `scan` (REQ-18).
+- **All 42 whose folder exists matched the formula**, none with an uppercase drive letter.
+
+**Consequences:**
+- TASK-19 uses the URI's own drive-letter case, and its self-check (21.0.5) should pass on a typical machine.
+- Multi-root workspaces aren't covered by REQ-21. TASK-19 reports a `.code-workspace` file under the source as detected but not handled.
+
+### F-7: the recent list and per-workspace state. Found, with one surprise.
+
+**The recent list.** VS Code 1.143's own code still keeps it under `history.recentlyOpenedPathsList`, in the application storage (`globalStorage/state.vscdb`, table `ItemTable`), saved as JSON:
+
+```
+{"entries": [ {"folderUri": "<URI>", "label"?: "...", "remoteAuthority"?: "..."}
+            | {"workspace": {"id": "...", "configPath": "<URI>"}, "label"?, "remoteAuthority"?}
+            | {"fileUri": "<URI>", "label"?, "remoteAuthority"?} ]}
+```
+
+URIs are written by `URI.toString()`: `file:///c%3A/…`, with a lowercase drive letter and the colon encoded.
+
+**The surprise:** on this machine the row is absent. No file in VS Code's data contains the key, so the list is currently empty and not stored. The 16 old paths the real move left in `state.vscdb` (requirements.md, section 3) weren't in a recent list. They were in the built-in GitHub extension's row, `vscode.github`, whose keys are `branchProtection:<folder URI>`: a per-repository cache of branch-protection rules, which the extension rebuilds when it's missing.
+
+**Per-workspace state.** In one workspace's `state.vscdb` (86 rows), 10 rows held the folder's paths:
+- 8 as plain JSON: for example the explorer's tree state, file history (`history.entries`), source-control repositories, and extensions' own state
+- 1 as JSON nested inside a string: `memento/workbench.parts.editor`, the open editors
+- 1 not JSON: `debug.selectedroot`
+
+**Consequences:**
+- The open editors can be rewritten as structured JSON (design.md, "Key design decisions", 13), so 21.1's "open editors" example stands, and nothing needs raising with the owner.
+- `debug.selectedroot` holds a bare path or URI, not JSON. TASK-19 can rewrite it as a single path value, or else must report it as left alone (13).
+- The `vscode.github` cache isn't something REQ-21 asks to carry. TASK-19 declares it an **expected leftover** (16.0.3), described as "the GitHub extension's branch-protection cache, which it rebuilds", so it doesn't show up as an unexpected warning after every move.
+- TASK-19's fixtures need a recent list, built from the serialiser's shape above, since none was available on this machine to copy.
 
 ## Platform (TASK-4)
 
