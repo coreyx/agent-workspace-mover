@@ -73,7 +73,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     4. Add `proptest` tests comparing every reported span and value with `serde_json`'s parse of the same line, on generated lines and on real-shape fixture lines (nested `cwd` keys, escaped paths, Unicode, very long lines).
     5. Wrap every value read in `AgentBytes` (design.md, "Key design decisions", 11). Add a compile-fail test showing it can't be formatted with `Display`.
 
-- [ ] **TASK-7: Implement locations, the state folder, the lock, records and backups**
+- [x] **TASK-7: Implement locations, the state folder, the lock, records and backups**
   - **Associated Acceptance Criteria**: `12.3`
   - **Concrete Steps**:
     1. Implement `Locations::from_env` for every OS: home, the Claude Code data folder (honouring `CLAUDE_CONFIG_DIR`, as F-3 found), VS Code's user folder, and the tool's state folder.

@@ -14,3 +14,24 @@ pub mod jsonl;
 
 /// Text read from agent data, wrapped so it can't be printed by accident.
 pub mod sensitive;
+
+/// Where the home folder, agent data, editor data and the tool's state live.
+pub mod locations;
+
+/// OS-specific code, the only place unsafe code is allowed.
+pub mod platform;
+
+/// Writing files so they're never left half-written.
+pub mod atomic;
+
+/// UTC timestamps for records, the log and move ids.
+pub mod timestamp;
+
+/// The tool's state folder and the machine-wide lock.
+pub mod state;
+
+/// Move records and content backups.
+pub mod record;
+
+/// The tool's log, which only accepts values that are safe to keep.
+pub mod log;
