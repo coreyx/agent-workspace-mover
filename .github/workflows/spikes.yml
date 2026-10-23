@@ -1,0 +1,37 @@
+# Runs the platform spikes (tasks.md, TASK-4) on GitHub's runners: the Restart Manager
+# timings on Windows (F-8) and libproc on macOS (F-10). Results go into
+# spec/agent-workspace-mover/facts.md. Runs only when the spikes change, or on demand.
+name: Platform spikes
+
+on:
+  push:
+    paths:
+      - crates/awm-testkit/examples/platform_spikes.rs
+      - .github/workflows/spikes.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install
+      - run: cargo build --release -p awm-testkit --example platform_spikes
+      - name: Restart Manager timings (F-8)
+        shell: bash
+        run: |
+          for n in 1000 10000 65535; do echo "== $n files"; target/release/examples/platform_spikes.exe rm $n; done
+      - name: Job limits on the runner (F-9)
+        run: target/release/examples/platform_spikes.exe job
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install
+      - run: cargo build --release -p awm-testkit --example platform_spikes
+      - name: libproc and case sensitivity (F-10)
+        run: target/release/examples/platform_spikes mac

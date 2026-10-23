@@ -14,3 +14,20 @@ tempfile.workspace = true
 
 [lints]
 workspace = true
+
+# The platform spikes in examples/platform_spikes.rs (tasks.md, TASK-4). They answer
+# design.md's facts F-8 to F-10; the platform layer itself (TASK-8) lives in awm-core.
+[target.'cfg(windows)'.dev-dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_JobObjects",
+    "Win32_System_Ole",
+    "Win32_System_RestartManager",
+    "Win32_System_TaskScheduler",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+libc = "0.2"
