@@ -133,18 +133,26 @@ Time to register N files (one held open by the spike itself) and ask which proce
 - **Planning's 3-second budget** (design.md, "Key design decisions", 9) covers about 40,000 files on this machine, and more on faster hardware. A bigger workspace gets a partial check while planning, and the full diagnosis only if the rename fails, as designed.
 - Since the crash takes down the caller, the platform layer should set the 65,535 limit as a constant with a test, not leave it to a caller's batch size.
 
-### F-9: a waiter survives its starter on both routes. Confirmed.
+### F-9: a waiter outlives its starter. Confirmed for Task Scheduler; the detached route is partly checked.
 
 | Started from | In a job? | Task Scheduler (standard user) | Detached, breakaway requested |
 |---|---|---|---|
 | Claude Code's shell tool | no | registered, started, **finished after the shell command ended** | breakaway allowed; started, **finished after the shell command ended** |
-| Windows Terminal (PowerShell), window then closed | no | registered, started, **finished** | breakaway allowed; started, **finished** |
+| Windows Terminal (PowerShell) | no | registered, started, finished (in its own window; see below) | breakaway allowed; started, finished, **but the terminal was still open, so closing it wasn't tested** |
 | GitHub's Windows runner | **yes: breakaway not allowed**, no kill-on-close | not tried | would fall back to no breakaway |
 
-Each payload ran for 20 seconds (shell tool) or 60 seconds (Windows Terminal), and wrote its "finished" line after its starter had gone.
+- A task's process isn't a child of whoever registered it, so closing the starting terminal can't affect it. It ran to the end from both starters.
+- **Whether a detached process survives its Windows Terminal window closing is still unverified.** TASK-28's test for 19.2, which closes the starting terminal on each OS's runner, has to cover it.
+- **A task that runs as the logged-in user (the interactive-token logon type) opens a visible console window** for a console program, and keeps it open while the program runs. The owner saw it appear, and close on its own when the 60-second payload finished.
 
 - Registering a one-off task as a standard user works: a registration trigger, the interactive-token logon type, and no administrator rights.
 - **Breakaway isn't always available**: the CI runner's job forbids it. So the Task Scheduler route stays primary and the detached process is the fallback, as tech.md planned. TASK-28 must check the job's limits (as the spike's `job` subcommand does) before relying on the fallback.
+- **TASK-28 must start the waiter without a window**, since a waiter can wait up to 24 hours. The options are:
+  - a small helper binary built for the Windows subsystem, so it has no console
+  - the waiter freeing its console at once, which still flashes a window briefly
+  - a logon type that doesn't run on the user's desktop
+
+  The choice changes what ships, so it's raised with the owner in TASK-28.
 
 ### F-10: macOS process inspection needs no extra rights. Confirmed on GitHub's macOS runner.
 
