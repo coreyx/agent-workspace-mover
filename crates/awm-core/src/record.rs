@@ -368,7 +368,10 @@ impl MoveRecord {
         let before = hash_file(original)?;
         fs::copy(original, &stored)?;
         // Windows only flushes a file opened for writing.
-        fs::OpenOptions::new().write(true).open(&stored)?.sync_all()?;
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&stored)?
+            .sync_all()?;
         platform::restrict_to_user(&stored)?;
         let (copy, bytes) = hash_file(&stored)?;
         if copy != before.0 {
