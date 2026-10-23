@@ -109,6 +109,47 @@ URIs are written by `URI.toString()`: `file:///c%3A/…`, with a lowercase drive
 - The `vscode.github` cache isn't something REQ-21 asks to carry. TASK-19 declares it an **expected leftover** (16.0.3), described as "the GitHub extension's branch-protection cache, which it rebuilds", so it doesn't show up as an unexpected warning after every move.
 - TASK-19's fixtures need a recent list, built from the serialiser's shape above, since none was available on this machine to copy.
 
-## Platform (TASK-4)
+## Platform (TASK-4), 2026-10-23
 
-Not yet checked.
+The spikes are in `crates/awm-testkit/examples/platform_spikes.rs`. `.github/workflows/spikes.yml` runs them on GitHub's Windows and macOS runners.
+
+### F-8: the Restart Manager is fast enough, but has a hard limit of 65,535 files per session. Found.
+
+Time to register N files (one held open by the spike itself) and ask which processes hold them, registering all of them in one call:
+
+| Files | This machine | CI Windows runner |
+|---|---|---|
+| 1,000 | 0.15 s | 0.07 s |
+| 10,000 | 0.8 s | 0.35 s |
+| 65,535 | 5.0 s | 3.4 s |
+
+- It named the holding process correctly at every size up to 65,535.
+- **At 65,536 files in one session, `RmGetList` returns error 29 and reports no holders at all.** That's a silent "nothing holds these files". **At 70,000 and 100,000, it crashed the calling process** with an access violation inside the Restart Manager.
+- Registering in many small calls is slower than one large one (about 8.7 s against 5.0 s at 65,535), because the lookup, not the registration, dominates.
+
+**Consequences for TASK-8:**
+- **Never register more than 65,535 files in one Restart Manager session.** Split larger sets across sessions (50,000 each leaves a margin).
+- **Treat any `RmGetList` error as "couldn't tell"** (`complete: false`, 20.0.4), never as "no holders".
+- **Planning's 3-second budget** (design.md, "Key design decisions", 9) covers about 40,000 files on this machine, and more on faster hardware. A bigger workspace gets a partial check while planning, and the full diagnosis only if the rename fails, as designed.
+- Since the crash takes down the caller, the platform layer should set the 65,535 limit as a constant with a test, not leave it to a caller's batch size.
+
+### F-9: a waiter survives its starter on both routes. Confirmed.
+
+| Started from | In a job? | Task Scheduler (standard user) | Detached, breakaway requested |
+|---|---|---|---|
+| Claude Code's shell tool | no | registered, started, **finished after the shell command ended** | breakaway allowed; started, **finished after the shell command ended** |
+| Windows Terminal (PowerShell), window then closed | no | registered, started, **finished** | breakaway allowed; started, **finished** |
+| GitHub's Windows runner | **yes: breakaway not allowed**, no kill-on-close | not tried | would fall back to no breakaway |
+
+Each payload ran for 20 seconds (shell tool) or 60 seconds (Windows Terminal), and wrote its "finished" line after its starter had gone.
+
+- Registering a one-off task as a standard user works: a registration trigger, the interactive-token logon type, and no administrator rights.
+- **Breakaway isn't always available**: the CI runner's job forbids it. So the Task Scheduler route stays primary and the detached process is the fallback, as tech.md planned. TASK-28 must check the job's limits (as the spike's `job` subcommand does) before relying on the fallback.
+
+### F-10: macOS process inspection needs no extra rights. Confirmed on GitHub's macOS runner.
+
+- `proc_pidinfo(PROC_PIDVNODEPATHINFO)` read another process's working folder, and it matched.
+- `proc_pidinfo(PROC_PIDLISTFDS)` plus `proc_pidfdinfo(PROC_PIDFDVNODEPATHINFO)` listed its open files and found the one it held.
+- `pathconf(_PC_CASE_SENSITIVE)` reported the default volume as case-insensitive (0).
+- libc 0.2 lacks `vnode_fdinfowithpath` and `PROC_PIDFDVNODEPATHINFO`. The spike declares them with the SDK's layout, and so will TASK-8.
+- The `lsof` fallback wasn't needed. It stays in the design for processes `libproc` can't inspect.

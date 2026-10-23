@@ -44,7 +44,7 @@ Once this is done, the workspace builds and tests in CI on all three OSes, and e
     3. F-7: in a copy of one workspace's `state.vscdb`, list which `ItemTable` keys hold file URIs under its folder, and whether they hold them as plain JSON strings or as JSON nested inside strings.
     4. Write the findings note. If open editors' URIs can't be rewritten as structured JSON, raise 21.1's "open editors" example with the owner before TASK-19.
 
-- [ ] **TASK-4: Verify platform facts F-8 to F-10**
+- [x] **TASK-4: Verify platform facts F-8 to F-10**
   - **Associated Acceptance Criteria**: none (discovery; results set the time budgets and fallbacks in TASK-8 and TASK-28)
   - **Concrete Steps**:
     1. F-8: write a spike in `awm-testkit`'s examples that registers 1,000, 10,000 and 100,000 files with the Restart Manager in batches, and measure the time on the CI Windows runner and this machine. Choose the batch size and the planning budget.
