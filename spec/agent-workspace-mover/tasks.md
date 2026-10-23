@@ -64,7 +64,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     3. Implement whole-segment boundaries, so `repo-old` and `repo.bak` never match `repo`. Preserve the form and drive-letter case of each replaced match.
     4. Add `proptest` properties: rewriting a match and mapping it back gives the original, and no match ever ends inside a segment. Add unit tests for every form on Windows-style and POSIX-style paths.
 
-- [ ] **TASK-6: Implement the JSONL field scanner**
+- [x] **TASK-6: Implement the JSONL field scanner**
   - **Associated Acceptance Criteria**: none (foundation for 6.8, 8.2 and 8.6; this task's own tests check it against `serde_json`)
   - **Concrete Steps**:
     1. Implement a streaming, line-at-a-time scanner in `awm-core` that reports the byte span and decoded value of a named field at the top level of each line's object, and ignores the same name in nested objects and strings.

@@ -8,3 +8,9 @@
 
 /// The path model: finding and replacing a workspace path in every recorded form.
 pub mod paths;
+
+/// A streaming scanner for JSON Lines files that reports top-level fields' spans.
+pub mod jsonl;
+
+/// Text read from agent data, wrapped so it can't be printed by accident.
+pub mod sensitive;

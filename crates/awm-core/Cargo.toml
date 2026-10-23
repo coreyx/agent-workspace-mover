@@ -13,6 +13,7 @@ aho-corasick = "1.1"
 
 [dev-dependencies]
 proptest = "1.12"
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 
 [lints]
 workspace = true
