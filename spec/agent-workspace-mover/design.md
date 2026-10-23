@@ -163,6 +163,8 @@ The executor checks them all at the recheck step, and again immediately before e
 6. A candidate whose `cwd` values give more than one real path is ambiguous.
 
 Both of the last two are left alone and listed (6.0.3, 6.0.4).
+
+`encode` here means Claude Code's whole naming rule, including how it shortens names over 200 characters: the first 200 characters, then `-` and a base-36 hash of the path ([facts.md](facts.md), F-2). Because of that, candidate prefixes are compared on at most their first 200 characters. A transcript can record both an old and a new path once a moved session has been resumed (facts.md, F-1). Only the `cwd` values that encode to the folder's own name count, so such a folder isn't ambiguous.
 **Why:** The encoding turns every character other than a letter or digit into `-`, so information is lost. The reference script's prefix match would also catch `website-old` (requirements.md, section 3). Paths recorded inside the transcripts are the only reliable source.
 
 ### 8. Formats are recognised by shape, and versions by declared range
@@ -183,11 +185,18 @@ A line it can't parse blocks Claude Code's changes (24.3), with one exception: a
 ### 9. Finding holders: cheap checks first, the rename as the final test, full diagnosis on failure
 **What:** While planning, the tool:
 1. checks every process's working folder (fast, from one process snapshot)
-2. on Windows, asks the Restart Manager about files under the source, in batches, within a 3-second time budget, returning `complete: false` if the budget runs out
+2. on Windows, asks the Restart Manager about files under the source, within a 3-second time budget, returning `complete: false` if the budget runs out
 3. walks its own ancestors to recognise the session it runs in (20.0.3): any ancestor that's a running agent process, or whose working folder is under the source
 
 If the Windows rename then fails with a sharing violation or access denied, the tool runs the Restart Manager over every file with no time budget, names the holders, and exits 4 with nothing changed.
-**Why:** Asking the Restart Manager about 100,000 files may take longer than REQ-28 allows. The rename is atomic: it either succeeds or fails cleanly. So the plan says what it found, and says when its search was incomplete (20.0.4), rather than paying the full cost on every run.
+
+The Restart Manager takes **at most 65,535 files per session**. At 65,536 it silently reports no holders, and above that it crashes the calling process (facts.md, F-8). So the platform layer:
+- registers files in sessions of at most 50,000, with that limit kept as a tested constant rather than left to callers
+- registers each session's files in one call, since many small calls are slower
+- treats any Restart Manager error as `complete: false`, never as "nothing holds these files"
+
+On this machine the 3-second budget covers about 40,000 files.
+**Why:** Asking the Restart Manager about 100,000 files takes longer than REQ-28 allows (about 5 seconds per 65,000 files measured). The rename is atomic: it either succeeds or fails cleanly. So the plan says what it found, and says when its search was incomplete (20.0.4), rather than paying the full cost on every run.
 
 ### 10. Opt-in confirmations exist only as a type the terminal prompt creates
 **What:** `awm-core` defines `TypedConfirmation` with a private constructor, reachable only through `prompt::confirm_phrase(&Terminal, phrase)` in `awm`. A `Terminal` can only be opened when both standard input and output are terminals, and it reads the phrase directly from the terminal. `Executor::apply` takes `&[TypedConfirmation]`, and an opt-in action is skipped unless a matching confirmation is present.
@@ -213,10 +222,16 @@ The probe tells the states apart: partial copy present, target present with the 
 **What:** Before planning any re-key, the VS Code adapter recomputes the id of every existing workspace storage folder under the source from its `workspace.json` folder and that folder's creation time or inode. If any computed id differs from its folder's name, it refuses all re-keying (21.0.5). The re-key action names its destination as computed at apply time, because on Linux the id uses the inode, which a cross-volume copy changes. The adapter resolves the destination after step 3 (21.0.7).
 
 The adapter also rewrites, as structured JSON, the string values in each re-keyed workspace's own `state.vscdb` that are paths or file URIs under the source. That includes JSON nested inside JSON strings, which is how VS Code stores open editors. Rows whose values aren't JSON are left alone and reported. This is what lets 21.1's "open editors' layout" come back.
+
+What facts.md (F-6, F-7) found, for VS Code 1.143:
+- **The formula** uses the URI's own `fsPath`, with a lowercase drive letter on Windows. It matched every live folder tested.
+- **A row holding a bare path or URI** rather than JSON, such as `debug.selectedroot`, is rewritten as a single path value, when the whole value is a path under the source.
+- **The GitHub extension's `vscode.github` row** holds a cache of branch-protection rules keyed `branchProtection:<folder URI>`, which the extension rebuilds. The adapter leaves it alone, and lists it as an expected leftover ("Key design decisions", 17).
+- **Multi-root workspaces** (`workspace.json` naming a `.code-workspace` file) are outside REQ-21. A `.code-workspace` file under the source is reported as detected but not handled.
 **Why:** The formula is a VS Code implementation detail. Proving it against the machine's own data costs one hash per folder, and removes the risk of moving state somewhere VS Code will never look.
 
 ### 14. No config file in v1
-**What:** Every behaviour is a command-line flag, including the finish-later waiting limit (`--wait-limit`, default `24h`). File locations come from the standard environment variables (`HOME`/`USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `XDG_*`, `CLAUDE_CONFIG_DIR`), read in one place (`Locations::from_env`).
+**What:** Every behaviour is a command-line flag, including the finish-later waiting limit (`--wait-limit`, default `24h`). File locations come from the standard environment variables (`HOME`/`USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `XDG_*`, `CLAUDE_CONFIG_DIR`), read in one place (`Locations::from_env`). When `CLAUDE_CONFIG_DIR` is set, Claude Code's global config is `$CLAUDE_CONFIG_DIR/.claude.json`, not `~/.claude.json` (facts.md, F-3).
 **Why:**
 - No config file means no config key can ever switch on an opt-in (8.0.5).
 - Tests point the tool at fixture homes by setting the same environment variables, with no test-only override needed (6.6).
@@ -228,7 +243,7 @@ The adapter also rewrites, as structured JSON, the string values in each re-keye
 ### 16. Finishing later re-plans, and never applies opt-ins
 **What:**
 1. `move --when-free` plans and gets the go-ahead in the foreground, then writes `pending/<move id>.json`: the approved plan, the blocking processes (process id plus start time, to survive process-id reuse) and the time limit.
-2. It starts the waiter through `Platform::spawn_waiter`. Where that's unavailable (Task Scheduler disabled, and a job that forbids breaking away), it reports that finishing later isn't available, and starts nothing.
+2. It starts the waiter through `Platform::spawn_waiter`. Where that's unavailable (Task Scheduler disabled, and a job that forbids breaking away), it reports that finishing later isn't available, and starts nothing. On Windows, a task that runs as the logged-in user opens a visible console window for a console program, for as long as it runs (facts.md, F-9). So the waiter has to start without a window. How is decided with the owner in TASK-28: a helper binary built for the Windows subsystem, the waiter freeing its console at once (a brief flash), or a logon type that doesn't run on the user's desktop. GitHub's Windows runner forbids breaking away, so the detached fallback checks the job's limits before relying on it.
 3. The waiter, `awm __wait <id>`, an internal command, waits for the blocking processes to exit. It uses process handles on Windows, and polls every 2 seconds elsewhere. Because new agent processes may start while it waits, it re-checks for them.
 4. Once nothing has blocked for two checks in a row, it takes the lock and plans again without a terminal. It applies the new plan only if the new plan has no blocker and no kind of action the approved plan lacked (19.0.3).
 5. It records the outcome where `status` reads it.
@@ -522,7 +537,7 @@ Each command with `--json` writes one document to standard output: `{"schema": "
 | A process holds the folder (working folder, or a file open) | Blocker naming each process; `--when-free` offered | 2.0.4, 20.1, 20.2 |
 | Holders unreadable (elevated or protected processes), or the search hits its time budget | Notice: "may be blocked by processes the tool can't inspect"; the rename is the final test | 20.0.4 |
 | The Windows rename fails anyway | Full holder diagnosis, exit 4, nothing changed | 1.0.3 |
-| Any Claude Code process running (CLI, VS Code extension, desktop app) | Blocker for Claude Code's changes; a dry run still completes | 2.0.5, 2.4, 4.3 |
+| Any Claude Code process running: any process named `claude.exe` (CLI, VS Code extension, desktop app, which all share the name), or `claude` elsewhere | Blocker for Claude Code's changes, naming each install by its executable's path (facts.md, F-5); a dry run still completes | 2.0.5, 2.4, 4.3 |
 | VS Code running | Blocker for VS Code's changes only | 21.0.3, 21.2 |
 | Same name, different content at the destination of a merge | Collision blocker; identical files are de-duplicated and listed | 2.0.7, 2.5, "Key design decisions" 15 |
 | Workspace storage already present at the target's id | Collision blocker naming both folders | 21.0.6, 21.5 |
@@ -531,7 +546,7 @@ Each command with `--json` writes one document to standard output: `{"schema": "
 | `~/.claude.json` fails to parse, or has duplicate keys | Blocker for settings; sessions still move only if the user accepts the plan without settings | 7.0.5 |
 | Unrecognised Claude Code version, or a transcript line that isn't JSON | Blocker for Claude Code's changes, naming the file and line; `--allow-unverified` to override | 24.0.3, 24.2, 24.3 |
 | Unterminated final line in a transcript | Moved unchanged; notice; excluded from opt-in rewriting | "Key design decisions" 8 |
-| Encoded project-folder name over 200 characters | Blocker: the name Claude Code would use can't be derived with confidence | 6.0.8 |
+| Encoded project-folder name over 200 characters | Computed with Claude Code's shortening rule (facts.md, F-2). A blocker only if no recorded `cwd` reproduces the folder's actual name, so the rule can't be confirmed for it | 6.0.8 |
 | Project folder with no transcripts, or ambiguous paths | Listed and left alone, unless the name matches exactly | 6.0.3, 6.0.4 |
 | Not enough space on the target volume for a copy | Blocker, with the amounts | 2.0.8 |
 | Copy verification fails | Partial copy removed, source untouched, exit 5 | 1.4 |
@@ -554,7 +569,12 @@ Each command with `--json` writes one document to standard output: `{"schema": "
 
 ## Facts to verify during implementation
 
-These are assumptions the design depends on that haven't been tested on a real machine. Each gets its own task in `tasks.md`, done before the code that relies on it. Whatever is found updates the adapter's declared verification.
+These were assumptions the design depended on before anything had been tested on a real machine. Milestone 1 checked them, and the results are in [facts.md](facts.md):
+- **F-1 to F-7 and F-10** are confirmed or found. Where a result added detail, the decisions above now say so.
+- **F-8** found the Restart Manager's session limit ("Key design decisions", 9).
+- **F-9** is confirmed for Task Scheduler, with two open items for TASK-28: starting without a window, and the detached fallback when a terminal window closes.
+
+None of them changed a requirement. The table below keeps the original assumptions, for reference.
 
 | # | Fact | Design relies on it in | If it turns out wrong |
 |---|---|---|---|
