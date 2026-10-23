@@ -35,3 +35,6 @@ pub mod record;
 
 /// The tool's log, which only accepts values that are safe to keep.
 pub mod log;
+
+#[cfg(test)]
+awm_testkit::fake_process_entry!();

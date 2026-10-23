@@ -13,18 +13,24 @@ aho-corasick = "1.1"
 blake3 = "1.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 tempfile.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_Security",
     "Win32_Security_Authorization",
+    "Win32_System_RestartManager",
     "Win32_Storage_FileSystem",
     "Win32_System_Threading",
 ] }
 
 [dev-dependencies]
+awm-testkit.workspace = true
 proptest = "1.12"
 
 [lints]

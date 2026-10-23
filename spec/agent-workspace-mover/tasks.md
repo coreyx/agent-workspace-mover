@@ -83,7 +83,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     5. Implement the redacted logger, which accepts only paths, field names, counts, ids and the tool's own messages.
     6. Test the permissions on each OS (12.3), atomic replacement under a simulated crash, and lock exclusivity between two processes.
 
-- [ ] **TASK-8: Implement the platform layer: processes, holders, volumes**
+- [x] **TASK-8: Implement the platform layer: processes, holders, volumes**
   - **Associated Acceptance Criteria**: `20.1`, `20.3`
   - **Concrete Steps**:
     1. Implement `Platform::processes` with `sysinfo`: process id, start time, name, executable, arguments, parent, and working folder (`None` when unreadable).

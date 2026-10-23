@@ -159,6 +159,12 @@ impl ParsedPath {
     fn parse(text: &str, style: PathStyle) -> Result<Self, PathError> {
         let (drive, rest) = match style {
             PathStyle::Windows => {
+                // A verbatim drive path (`\\?\C:\…`, as `fs::canonicalize` returns) is the
+                // same path as `C:\…`. Verbatim UNC paths stay unsupported, like UNC paths.
+                let text = match text.strip_prefix(r"\\?\") {
+                    Some(rest) if rest.as_bytes().get(1) == Some(&b':') => rest,
+                    _ => text,
+                };
                 if text.starts_with("\\\\") || text.starts_with("//") {
                     return Err(PathError::Unsupported(text.to_owned()));
                 }
@@ -702,6 +708,14 @@ mod tests {
             windows(r"\\server\share\repo"),
             Err(PathError::Unsupported(_))
         ));
+        assert!(matches!(
+            windows(r"\\?\UNC\server\share\repo"),
+            Err(PathError::Unsupported(_))
+        ));
+        assert!(
+            windows(r"\\?\C:\Users\u\repo").is_ok(),
+            "a verbatim drive path is accepted"
+        );
         assert!(matches!(
             windows(r"C:relative"),
             Err(PathError::NotAbsolute(_))

@@ -105,3 +105,7 @@ impl FixtureHome {
         command
     }
 }
+
+/// Fake processes that hold a folder, for tests of finding what's holding it.
+pub mod fake_process;
+pub use fake_process::FakeProcess;
