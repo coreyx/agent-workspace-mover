@@ -1,0 +1,5 @@
+# Keep line endings stable across Windows, macOS and Linux checkouts. Fixture files that
+# test line-ending handling (REQ-10) are marked binary so git never converts them.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+**/fixtures/** -text

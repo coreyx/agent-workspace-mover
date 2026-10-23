@@ -1,0 +1,5 @@
+/target
+*.profraw
+lcov.info
+# Machine-specific notes for Claude Code; see CLAUDE.md.
+CLAUDE.local.md

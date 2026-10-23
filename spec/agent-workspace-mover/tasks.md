@@ -16,7 +16,7 @@ The design lists ten facts to verify ("Facts to verify during implementation", F
 
 Once this is done, the workspace builds and tests in CI on all three OSes, and every assumption the design rests on has been confirmed or raised with the owner.
 
-- [ ] **TASK-1: Set up the Cargo workspace and CI**
+- [x] **TASK-1: Set up the Cargo workspace and CI**
   - **Associated Acceptance Criteria**: none (project setup)
   - **Concrete Steps**:
     1. Create the workspace with the crates in design.md's "Crates" section: `awm`, `awm-core`, `awm-agent-claude`, `awm-vcs-git`, `awm-editor-vscode`, `awm-detectors` and `awm-testkit`. Each starts as an empty, documented skeleton.

@@ -1,0 +1,43 @@
+# cargo-deny policy (tech.md, "Constraints & risks": supply chain).
+
+[graph]
+all-features = true
+
+[advisories]
+# Every RustSec advisory, including unmaintained crates, fails the check.
+yanked = "deny"
+
+[licenses]
+# The licences tech.md allows. A crate offering a choice (for example "MIT OR Apache-2.0")
+# passes when any one of its options is allowed.
+allow = ["MIT", "Apache-2.0", "Unlicense", "CC0-1.0"]
+confidence-threshold = 0.9
+# Unlicense and CC0 are allowed ahead of the crates that use them (ignore, blake3).
+unused-allowed-license = "allow"
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# awm-testkit is a path dependency that is never published, so it carries no version.
+allow-wildcard-paths = true
+# The tool makes no network requests (requirements.md, 26.0.1), so no network client,
+# HTTP or TLS crate may enter the dependency tree.
+deny = [
+    { name = "reqwest" },
+    { name = "hyper" },
+    { name = "h2" },
+    { name = "ureq" },
+    { name = "curl" },
+    { name = "curl-sys" },
+    { name = "isahc" },
+    { name = "surf" },
+    { name = "attohttpc" },
+    { name = "rustls" },
+    { name = "native-tls" },
+    { name = "openssl" },
+    { name = "openssl-sys" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

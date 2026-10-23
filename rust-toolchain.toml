@@ -1,0 +1,6 @@
+# Pinned so every contributor and CI build with the same compiler (tech.md, "Language and toolchain").
+# The branch-coverage job alone uses a pinned nightly; see .github/workflows/coverage-branch.yml.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy", "llvm-tools"]
+profile = "minimal"

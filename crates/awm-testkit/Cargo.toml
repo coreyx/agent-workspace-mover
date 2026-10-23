@@ -1,0 +1,16 @@
+[package]
+name = "awm-testkit"
+description = "Test helpers for agent-workspace-mover: fixture homes, fake processes and fail points. Never shipped."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

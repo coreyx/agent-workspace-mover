@@ -1,0 +1,25 @@
+[package]
+name = "agent-workspace-mover"
+description = "Move or rename a workspace folder, and carry everything keyed on its path with it: agent sessions, memory and settings, git's links, and editor state."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["claude-code", "git", "workspace", "move", "rename"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "agent-workspace-mover"
+path = "src/main.rs"
+
+[dependencies]
+awm-core.workspace = true
+awm-agent-claude.workspace = true
+awm-vcs-git.workspace = true
+awm-editor-vscode.workspace = true
+awm-detectors.workspace = true
+
+[lints]
+workspace = true

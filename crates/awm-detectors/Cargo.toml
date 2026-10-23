@@ -1,0 +1,15 @@
+[package]
+name = "awm-detectors"
+description = "Report-only detectors for agent-workspace-mover."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+awm-core.workspace = true
+
+[lints]
+workspace = true

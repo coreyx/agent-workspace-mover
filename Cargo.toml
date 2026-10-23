@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# The oldest toolchain the workspace is built and tested with; see rust-toolchain.toml.
+rust-version = "1.99"
+license = "MIT"
+repository = "https://github.com/coreyx/agent-workspace-mover"
+authors = ["Corey Struzan"]
+
+[workspace.dependencies]
+awm-core = { path = "crates/awm-core", version = "0.1.0" }
+awm-agent-claude = { path = "crates/awm-agent-claude", version = "0.1.0" }
+awm-vcs-git = { path = "crates/awm-vcs-git", version = "0.1.0" }
+awm-editor-vscode = { path = "crates/awm-editor-vscode", version = "0.1.0" }
+awm-detectors = { path = "crates/awm-detectors", version = "0.1.0" }
+awm-testkit = { path = "crates/awm-testkit" }
+tempfile = "3"
+
+[workspace.lints.rust]
+# The coding standards ask for every item to be documented.
+missing_docs = "warn"
+# Unsafe code is confined to the platform layer, which opts back in per module.
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

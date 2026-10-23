@@ -1,0 +1,39 @@
+# Branch coverage, which cargo-llvm-cov still supports only on nightly (tech.md, "Testing
+# and coverage"). It runs on a schedule rather than on every push, so a nightly change
+# never blocks a pull request. The nightly is pinned so results are comparable run to run.
+name: Branch coverage
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  NIGHTLY: nightly-2026-10-15
+
+jobs:
+  branch-coverage:
+    name: branch coverage (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned nightly
+        run: rustup toolchain install ${{ env.NIGHTLY }} --profile minimal --component llvm-tools
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # Reported only for now; TASK-34 adds the branch thresholds.
+      - name: Branch coverage
+        run: cargo +${{ env.NIGHTLY }} llvm-cov --workspace --branch --lcov --output-path lcov.info
+      - uses: actions/upload-artifact@v4
+        with:
+          name: branch-lcov-${{ matrix.os }}
+          path: lcov.info
