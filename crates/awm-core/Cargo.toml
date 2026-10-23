@@ -9,6 +9,10 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+aho-corasick = "1.1"
+
+[dev-dependencies]
+proptest = "1.12"
 
 [lints]
 workspace = true

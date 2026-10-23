@@ -56,7 +56,7 @@ Once this is done, the workspace builds and tests in CI on all three OSes, and e
 
 Once this is done, `agent-workspace-mover move` checks, plans, confirms and moves a folder with no agent data on any supported OS. It records every step, and `plan` shows exactly what would happen.
 
-- [ ] **TASK-5: Implement the path model**
+- [x] **TASK-5: Implement the path model**
   - **Associated Acceptance Criteria**: `5.1`, `5.2`, `5.3`
   - **Concrete Steps**:
     1. Implement `PathMapping`, `PathForm` and `CaseRule` in `awm-core::paths`, with `find`, `rewrite` and `covers` as design.md's "Interfaces" section specifies.

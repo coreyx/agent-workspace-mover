@@ -5,3 +5,6 @@
 //! what holds a folder, the leftover search, and the `Adapter` and `Platform` traits.
 //! It knows nothing about any particular agent, version-control system or editor
 //! (requirements.md, 24.0.1); those live in their own adapter crates.
+
+/// The path model: finding and replacing a workspace path in every recorded form.
+pub mod paths;
