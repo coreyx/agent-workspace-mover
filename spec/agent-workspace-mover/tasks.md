@@ -26,7 +26,7 @@ Once this is done, the workspace builds and tests in CI on all three OSes, and e
     5. Add `cargo-llvm-cov` line and region coverage on stable for every run, and a scheduled pinned-nightly job with `--branch`, reporting only for now (TASK-34 adds the gates).
     6. Give `awm-testkit` a fixture-home builder that sets `HOME`/`USERPROFILE`, `APPDATA`, `LOCALAPPDATA`, `XDG_*` and `CLAUDE_CONFIG_DIR` for a child process, plus a test proving a child process launched through it can't see the real home folder.
 
-- [ ] **TASK-2: Verify Claude Code facts F-1 to F-5**
+- [x] **TASK-2: Verify Claude Code facts F-1 to F-5**
   - **Associated Acceptance Criteria**: none (discovery; results update design.md's facts table and the Claude Code adapter's declared verification)
   - **Concrete Steps**:
     1. F-1, with the owner at a terminal: start a real interactive session in a throwaway folder and run a shell command, so the session records the POSIX form of `cwd`. Then move the folder, merge its project folder, and have the owner confirm the `claude --resume` picker lists the session from the new folder. Clean up, as in the 2026-10-22 experiment.
