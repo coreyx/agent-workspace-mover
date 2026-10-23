@@ -103,27 +103,34 @@ impl Platform for Host {
     }
 
     fn set_creation_time(&self, path: &Path, time: SystemTime) -> io::Result<()> {
-        #[cfg(windows)]
-        return windows_holders::set_creation_time(path, time);
-        #[cfg(target_os = "macos")]
-        {
-            use std::os::macos::fs::FileTimesExt;
-            return std::fs::File::open(path)?
-                .set_times(std::fs::FileTimes::new().set_created(time));
-        }
-        #[cfg(not(any(windows, target_os = "macos")))]
-        {
-            let _ = (path, time);
-            Err(io::Error::new(
-                io::ErrorKind::Unsupported,
-                "this OS doesn't let a creation time be set",
-            ))
-        }
+        set_created(path, time)
     }
 
     fn restrict_to_user(&self, path: &Path) -> io::Result<()> {
         restrict_to_user(path)
     }
+}
+
+/// Sets `path`'s creation time on Windows.
+#[cfg(windows)]
+fn set_created(path: &Path, time: SystemTime) -> io::Result<()> {
+    windows_holders::set_creation_time(path, time)
+}
+
+/// Sets `path`'s creation time on macOS, for a file or a folder.
+#[cfg(target_os = "macos")]
+fn set_created(path: &Path, time: SystemTime) -> io::Result<()> {
+    use std::os::macos::fs::FileTimesExt;
+    std::fs::File::open(path)?.set_times(std::fs::FileTimes::new().set_created(time))
+}
+
+/// Linux and other Unix systems keep no settable creation time.
+#[cfg(not(any(windows, target_os = "macos")))]
+fn set_created(_path: &Path, _time: SystemTime) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "this OS doesn't let a creation time be set",
+    ))
 }
 
 /// Processes with a file under `root` open, from whichever mechanism this OS has.
