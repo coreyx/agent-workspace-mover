@@ -2,13 +2,23 @@
 //!
 //! This binary parses commands, builds the adapter registry, runs prompts, renders
 //! human-readable and JSON output and maps outcomes to exit codes (design.md,
-//! "Crates"). Until those land (tasks.md, TASK-9 and TASK-11), it answers only
-//! `--version` and `--help`.
+//! "Crates"). Until the commands land (tasks.md, TASK-11), it answers only `--version`
+//! and `--help`.
 
 use std::process::ExitCode;
 
-/// Exit code for a usage error, matching the table in design.md ("Exit codes").
-const USAGE_ERROR: u8 = 2;
+use exit::Exit;
+
+mod exit;
+// The plan and move commands that render and print these arrive in TASK-11.
+#[cfg_attr(not(test), allow(dead_code))]
+mod output;
+#[cfg_attr(not(test), allow(dead_code))]
+mod render;
+#[cfg(test)]
+mod samples;
+#[cfg_attr(not(test), allow(dead_code))]
+mod schema;
 
 /// Runs the command with the process's arguments.
 fn main() -> ExitCode {
@@ -16,18 +26,18 @@ fn main() -> ExitCode {
     match args.first().map(String::as_str) {
         Some("--version" | "-V") => {
             println!("agent-workspace-mover {}", env!("CARGO_PKG_VERSION"));
-            ExitCode::SUCCESS
+            Exit::Success.into()
         }
         Some("--help" | "-h") | None => {
             println!("{}", help());
-            ExitCode::SUCCESS
+            Exit::Success.into()
         }
         Some(other) => {
             eprintln!(
                 "agent-workspace-mover: unknown command '{other}'\n\n{}",
                 help()
             );
-            ExitCode::from(USAGE_ERROR)
+            Exit::Usage.into()
         }
     }
 }

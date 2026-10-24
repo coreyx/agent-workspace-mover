@@ -92,7 +92,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     4. Implement the ancestor walk that marks the tool's own session chain (used by TASK-13).
     5. Test with `awm-testkit` fake processes: a shell whose working folder is under a fixture folder, and a process holding a file open, both named with their process ids (20.1). Add a test that no process file's contents reach output or the log (20.3).
 
-- [ ] **TASK-9: Implement the plan model, adapter trait and output**
+- [x] **TASK-9: Implement the plan model, adapter trait and output**
   - **Associated Acceptance Criteria**: `22.1`, `22.3`
   - **Concrete Steps**:
     1. Implement the `Adapter` trait, `Contribution`, `PlannedAction`, the closed `Action` enum, `Destination`, `JsonEdit`, `Precondition`, `Blocker` (with stable codes), `Notice`, `LeftUnchanged` and `OptInOffer`, as design.md's "Interfaces" section specifies.

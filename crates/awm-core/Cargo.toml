@@ -11,6 +11,7 @@ authors.workspace = true
 [dependencies]
 aho-corasick = "1.1"
 blake3 = "1.8"
+schemars = "1.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }

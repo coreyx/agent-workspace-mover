@@ -38,3 +38,9 @@ pub mod log;
 
 #[cfg(test)]
 awm_testkit::fake_process_entry!();
+
+/// The plan and the report, and their schemas.
+pub mod plan;
+
+/// The adapter interface, and assembling a plan from adapters' contributions.
+pub mod adapter;

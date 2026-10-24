@@ -17,7 +17,9 @@ use super::process::ProcessSnapshot;
 use crate::paths::{CaseRule, PathMapping};
 
 /// How a process holds a folder.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum HoldKind {
     /// Its working folder is the folder or inside it.

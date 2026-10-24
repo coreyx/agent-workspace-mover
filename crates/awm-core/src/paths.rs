@@ -20,7 +20,10 @@ use std::path::Path;
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
 
 /// Which operating system's rules a path follows.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "kebab-case")]
 pub enum PathStyle {
     /// Drive-letter paths such as `C:\Users\me\repo`.
     Windows,
@@ -40,7 +43,10 @@ impl PathStyle {
 }
 
 /// Whether two paths that differ only in letter case name the same folder (5.0.2).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
+#[serde(rename_all = "kebab-case")]
 pub enum CaseRule {
     /// Case matters, as on Linux and case-sensitive macOS volumes.
     Sensitive,
@@ -356,6 +362,22 @@ impl RelativePath {
     }
 }
 
+/// A [`PathMapping`] as plain data, the form plans and records store it in. The
+/// executor rebuilds the mapping from it with [`PathMapping::from_spec`].
+#[derive(
+    Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+)]
+pub struct MappingSpec {
+    /// The source in its native form.
+    pub source: String,
+    /// The target in its native form.
+    pub target: String,
+    /// Which OS's path rules apply.
+    pub style: PathStyle,
+    /// Whether case matters when matching.
+    pub case: CaseRule,
+}
+
 /// A move's source and target, with everything needed to find the source in recorded
 /// text and replace it with the target.
 #[derive(Clone, Debug)]
@@ -402,6 +424,21 @@ impl PathMapping {
             patterns,
             automaton,
         })
+    }
+
+    /// A mapping rebuilt from its recorded description, as a plan or record stores it.
+    pub fn from_spec(spec: &MappingSpec) -> Result<Self, PathError> {
+        Self::new(&spec.source, &spec.target, spec.style, spec.case)
+    }
+
+    /// The description a plan or record stores for this mapping.
+    pub fn spec(&self) -> MappingSpec {
+        MappingSpec {
+            source: self.source(),
+            target: self.target(),
+            style: self.source.style,
+            case: self.case,
+        }
     }
 
     /// A mapping between two host paths, in the host's style.

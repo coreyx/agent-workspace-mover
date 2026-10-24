@@ -1,0 +1,1140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan",
+  "description": "A whole plan (REQ-3).",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "description": "The schema name and version: [`PLAN_SCHEMA`].",
+      "type": "string"
+    },
+    "command": {
+      "description": "What the plan is for.",
+      "$ref": "#/$defs/PlanCommand"
+    },
+    "source": {
+      "description": "The workspace's path now.",
+      "type": "string"
+    },
+    "target": {
+      "description": "Its path after the move.",
+      "type": "string"
+    },
+    "volume_relation": {
+      "description": "Whether the folder moves by rename, by copy, or not at all.",
+      "$ref": "#/$defs/VolumeRelation"
+    },
+    "holders": {
+      "description": "What holds the source.",
+      "$ref": "#/$defs/PlanHolders"
+    },
+    "blockers": {
+      "description": "Blockers found by the core's own checks, such as a target that already exists.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Blocker"
+      }
+    },
+    "notices": {
+      "description": "Notices from the core's own checks.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Notice"
+      }
+    },
+    "adapters": {
+      "description": "Each adapter's part.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/AdapterSection"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "command",
+    "source",
+    "target",
+    "volume_relation",
+    "holders",
+    "blockers",
+    "notices",
+    "adapters"
+  ],
+  "$defs": {
+    "PlanCommand": {
+      "description": "What a plan is for.",
+      "oneOf": [
+        {
+          "description": "Move a folder and everything keyed on its path (REQ-1).",
+          "type": "string",
+          "const": "move"
+        },
+        {
+          "description": "Reattach data orphaned by a move done by hand (REQ-15).",
+          "type": "string",
+          "const": "rescue"
+        },
+        {
+          "description": "Reverse a past move (REQ-14).",
+          "type": "string",
+          "const": "undo"
+        }
+      ]
+    },
+    "VolumeRelation": {
+      "description": "Where the move's target is relative to its source.",
+      "oneOf": [
+        {
+          "description": "The same volume: the folder moves with one rename (1.0.3).",
+          "type": "string",
+          "const": "same"
+        },
+        {
+          "description": "Different volumes: the folder is copied, verified, then removed (1.0.4).",
+          "type": "string",
+          "const": "different"
+        },
+        {
+          "description": "Nothing moves on disk, as in a rescue.",
+          "type": "string",
+          "const": "no-folder-move"
+        }
+      ]
+    },
+    "PlanHolders": {
+      "description": "What holds the source, as the plan shows it.",
+      "type": "object",
+      "properties": {
+        "holders": {
+          "description": "The processes found.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HolderEntry"
+          }
+        },
+        "uninspectable": {
+          "description": "How many processes couldn't be inspected.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "complete": {
+          "description": "Whether the search covered everything (20.0.4).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "holders",
+        "uninspectable",
+        "complete"
+      ]
+    },
+    "HolderEntry": {
+      "description": "One process holding the source, as the plan shows it.",
+      "type": "object",
+      "properties": {
+        "pid": {
+          "description": "Its process id.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "name": {
+          "description": "Its program's name.",
+          "type": "string"
+        },
+        "exe": {
+          "description": "Its executable, when readable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "description": "How it holds the folder.",
+          "$ref": "#/$defs/HoldKind"
+        },
+        "this_session": {
+          "description": "Whether it's the session the tool is running in (20.0.3).",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pid",
+        "name",
+        "kind",
+        "this_session"
+      ]
+    },
+    "HoldKind": {
+      "description": "How a process holds a folder.",
+      "oneOf": [
+        {
+          "description": "Its working folder is the folder or inside it.",
+          "type": "string",
+          "const": "working-folder"
+        },
+        {
+          "description": "It has a file inside the folder open.",
+          "type": "string",
+          "const": "open-file"
+        }
+      ]
+    },
+    "Blocker": {
+      "description": "Something that stops the real run, with what the user can do about it.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "A stable code scripts and the agent skill can rely on, such as `agent-running`.",
+          "type": "string"
+        },
+        "message": {
+          "description": "What's wrong.",
+          "type": "string"
+        },
+        "remedy": {
+          "description": "What to do about it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "Notice": {
+      "description": "Something worth knowing that doesn't stop the run.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "A stable code.",
+          "type": "string"
+        },
+        "message": {
+          "description": "What to know.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "AdapterSection": {
+      "description": "One adapter's part of a plan.",
+      "type": "object",
+      "properties": {
+        "adapter": {
+          "description": "The adapter.",
+          "$ref": "#/$defs/AdapterInfo"
+        },
+        "found_version": {
+          "description": "The tool's version found on this machine, if it has one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actions": {
+          "description": "What it will do.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlannedAction"
+          }
+        },
+        "left_unchanged": {
+          "description": "What it leaves unchanged by default.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LeftUnchanged"
+          }
+        },
+        "opt_ins": {
+          "description": "The opt-ins it offers.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OptInOffer"
+          }
+        },
+        "blockers": {
+          "description": "What stops its changes.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Blocker"
+          }
+        },
+        "notices": {
+          "description": "What's worth knowing.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Notice"
+          }
+        },
+        "detected": {
+          "description": "Path-keyed state it found but version 1 doesn't fix (REQ-11).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Notice"
+          }
+        },
+        "counts": {
+          "description": "Counts for the plan to show.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Count"
+          }
+        }
+      },
+      "required": [
+        "adapter",
+        "actions",
+        "left_unchanged",
+        "opt_ins",
+        "blockers",
+        "notices",
+        "detected",
+        "counts"
+      ]
+    },
+    "AdapterInfo": {
+      "description": "Who an adapter is and what it's been checked against (24.0.2).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "A stable id, such as `claude-code`.",
+          "type": "string"
+        },
+        "name": {
+          "description": "A name for people, such as `Claude Code`.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "What kind of tool it covers.",
+          "$ref": "#/$defs/AdapterKind"
+        },
+        "verified": {
+          "description": "The versions and OSes it's verified against.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Verification"
+          }
+        },
+        "recognised": {
+          "description": "The versions it recognises, beyond those verified, such as `>=2.1.0, <2.2.0`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "verified"
+      ]
+    },
+    "AdapterKind": {
+      "description": "What kind of tool an adapter covers.",
+      "oneOf": [
+        {
+          "description": "An AI agent, such as Claude Code.",
+          "type": "string",
+          "const": "agent"
+        },
+        {
+          "description": "A version-control system, such as git.",
+          "type": "string",
+          "const": "version-control"
+        },
+        {
+          "description": "An editor, such as VS Code.",
+          "type": "string",
+          "const": "editor"
+        },
+        {
+          "description": "A report-only detector (REQ-11).",
+          "type": "string",
+          "const": "detector"
+        }
+      ]
+    },
+    "Verification": {
+      "description": "A version range an adapter has been checked against, on one OS.",
+      "type": "object",
+      "properties": {
+        "versions": {
+          "description": "The versions, such as `2.1.309`.",
+          "type": "string"
+        },
+        "os": {
+          "description": "The OS, such as `Windows 11`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "versions",
+        "os"
+      ]
+    },
+    "PlannedAction": {
+      "description": "One action in a plan.",
+      "type": "object",
+      "properties": {
+        "phase": {
+          "description": "The phase it runs in.",
+          "$ref": "#/$defs/Phase"
+        },
+        "adapter": {
+          "description": "The adapter that planned it.",
+          "type": "string"
+        },
+        "summary": {
+          "description": "What it does, in a sentence the plan shows.",
+          "type": "string"
+        },
+        "action": {
+          "description": "The change itself.",
+          "$ref": "#/$defs/Action"
+        },
+        "preconditions": {
+          "description": "What must still be true when it runs.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Precondition"
+          }
+        },
+        "opt_in": {
+          "description": "The opt-in it belongs to, if any. Such an action runs only with that opt-in's\ntyped confirmation.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptInId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "phase",
+        "adapter",
+        "summary",
+        "action",
+        "preconditions"
+      ]
+    },
+    "Phase": {
+      "description": "The phases a plan's actions run in, in this order (design.md, \"Order of steps\").",
+      "oneOf": [
+        {
+          "description": "Moving the workspace folder itself.",
+          "type": "string",
+          "const": "move-workspace"
+        },
+        {
+          "description": "Repairing version control's links.",
+          "type": "string",
+          "const": "repair-vcs"
+        },
+        {
+          "description": "Carrying agent data: session folders and memory.",
+          "type": "string",
+          "const": "carry-agent-data"
+        },
+        {
+          "description": "Carrying per-project settings.",
+          "type": "string",
+          "const": "carry-settings"
+        },
+        {
+          "description": "Carrying editor state.",
+          "type": "string",
+          "const": "carry-editor-state"
+        },
+        {
+          "description": "Updating the paths inside the workspace the user selected.",
+          "type": "string",
+          "const": "update-workspace-paths"
+        },
+        {
+          "description": "Edits to the record, each only with its typed confirmation.",
+          "type": "string",
+          "const": "opt-in"
+        }
+      ]
+    },
+    "Action": {
+      "description": "The closed set of changes the executor makes (design.md, \"Key design decisions\", 1).",
+      "oneOf": [
+        {
+          "description": "Moves a folder: a rename on one volume, a verified copy across volumes.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "move-tree"
+            },
+            "from": {
+              "description": "Where it is.",
+              "type": "string"
+            },
+            "to": {
+              "description": "Where it goes.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to"
+          ]
+        },
+        {
+          "description": "Merges a folder's entries into another, renaming it when the destination is free.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "merge-dir"
+            },
+            "from": {
+              "description": "The folder to merge.",
+              "type": "string"
+            },
+            "to": {
+              "description": "Where its entries go.",
+              "$ref": "#/$defs/Destination"
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to"
+          ]
+        },
+        {
+          "description": "Edits a JSON file as JSON.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit-json-file"
+            },
+            "file": {
+              "description": "The file.",
+              "type": "string"
+            },
+            "edits": {
+              "description": "The edits, in order.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/JsonEdit"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "file",
+            "edits"
+          ]
+        },
+        {
+          "description": "Edits the JSON value of one row in a SQLite table.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "edit-sqlite-json-row"
+            },
+            "db": {
+              "description": "The database file.",
+              "type": "string"
+            },
+            "table": {
+              "description": "The table.",
+              "type": "string"
+            },
+            "key": {
+              "description": "The row's key.",
+              "type": "string"
+            },
+            "edits": {
+              "description": "The edits, in order.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/JsonEdit"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "db",
+            "table",
+            "key",
+            "edits"
+          ]
+        },
+        {
+          "description": "Replaces a top-level string field's path on every line of a JSON Lines file.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "splice-jsonl-field"
+            },
+            "file": {
+              "description": "The file.",
+              "type": "string"
+            },
+            "field": {
+              "description": "The field, such as `cwd`.",
+              "type": "string"
+            },
+            "mapping": {
+              "description": "The source and target.",
+              "$ref": "#/$defs/MappingSpec"
+            }
+          },
+          "required": [
+            "kind",
+            "file",
+            "field",
+            "mapping"
+          ]
+        },
+        {
+          "description": "Replaces the source path at chosen places in a text file.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "replace-in-text"
+            },
+            "file": {
+              "description": "The file.",
+              "type": "string"
+            },
+            "mapping": {
+              "description": "The source and target.",
+              "$ref": "#/$defs/MappingSpec"
+            },
+            "matches": {
+              "description": "Where the matches are.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TextSpan"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "file",
+            "mapping",
+            "matches"
+          ]
+        },
+        {
+          "description": "Runs an external program, such as `git worktree repair`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "run-tool"
+            },
+            "program": {
+              "description": "The program.",
+              "type": "string"
+            },
+            "args": {
+              "description": "Its arguments.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "cwd": {
+              "description": "The folder to run it in.",
+              "type": "string"
+            },
+            "inverse": {
+              "description": "What reverses it, run after the reverse move.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Action"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "program",
+            "args",
+            "cwd"
+          ]
+        }
+      ]
+    },
+    "Destination": {
+      "description": "Where a merge's entries go: a path known now, or one an adapter works out after the\nfolder has moved, such as VS Code's storage id (design.md, \"Key design decisions\", 13).",
+      "oneOf": [
+        {
+          "description": "A path known when planning.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "path"
+            },
+            "path": {
+              "description": "The destination folder.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "A path the named adapter resolves at apply time from `key`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "deferred"
+            },
+            "adapter": {
+              "description": "The adapter that resolves it.",
+              "type": "string"
+            },
+            "key": {
+              "description": "What the adapter needs to resolve it.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "adapter",
+            "key"
+          ]
+        }
+      ]
+    },
+    "JsonEdit": {
+      "description": "One structural edit to a JSON document. Pointers are JSON Pointers (RFC 6901).",
+      "oneOf": [
+        {
+          "description": "Renames key `from` to `to` in the object at `object`, keeping its value and place.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rename-key"
+            },
+            "object": {
+              "description": "The object holding the key.",
+              "type": "string"
+            },
+            "from": {
+              "description": "The key's current name.",
+              "type": "string"
+            },
+            "to": {
+              "description": "Its new name.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "object",
+            "from",
+            "to"
+          ]
+        },
+        {
+          "description": "Replaces the string at `at`, which must currently equal `from`.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "replace-string"
+            },
+            "at": {
+              "description": "The string's location.",
+              "type": "string"
+            },
+            "from": {
+              "description": "Its current value.",
+              "type": "string"
+            },
+            "to": {
+              "description": "Its new value.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "at",
+            "from",
+            "to"
+          ]
+        },
+        {
+          "description": "Rewrites every string under `at` that is a path or URI under the mapping's\nsource, recursing into JSON held in strings.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rewrite-path-strings"
+            },
+            "at": {
+              "description": "Where to start.",
+              "type": "string"
+            },
+            "mapping": {
+              "description": "The source and target.",
+              "$ref": "#/$defs/MappingSpec"
+            }
+          },
+          "required": [
+            "kind",
+            "at",
+            "mapping"
+          ]
+        }
+      ]
+    },
+    "MappingSpec": {
+      "description": "A [`PathMapping`] as plain data, the form plans and records store it in. The\nexecutor rebuilds the mapping from it with [`PathMapping::from_spec`].",
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "The source in its native form.",
+          "type": "string"
+        },
+        "target": {
+          "description": "The target in its native form.",
+          "type": "string"
+        },
+        "style": {
+          "description": "Which OS's path rules apply.",
+          "$ref": "#/$defs/PathStyle"
+        },
+        "case": {
+          "description": "Whether case matters when matching.",
+          "$ref": "#/$defs/CaseRule"
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "style",
+        "case"
+      ]
+    },
+    "PathStyle": {
+      "description": "Which operating system's rules a path follows.",
+      "oneOf": [
+        {
+          "description": "Drive-letter paths such as `C:\\Users\\me\\repo`.",
+          "type": "string",
+          "const": "windows"
+        },
+        {
+          "description": "Rooted paths such as `/home/me/repo`.",
+          "type": "string",
+          "const": "posix"
+        }
+      ]
+    },
+    "CaseRule": {
+      "description": "Whether two paths that differ only in letter case name the same folder (5.0.2).",
+      "oneOf": [
+        {
+          "description": "Case matters, as on Linux and case-sensitive macOS volumes.",
+          "type": "string",
+          "const": "sensitive"
+        },
+        {
+          "description": "Case doesn't matter, as on Windows and most macOS volumes.",
+          "type": "string",
+          "const": "insensitive"
+        }
+      ]
+    },
+    "TextSpan": {
+      "description": "A byte range in a file.",
+      "type": "object",
+      "properties": {
+        "start": {
+          "description": "The first byte.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "end": {
+          "description": "The byte after the last.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "Precondition": {
+      "description": "Something that must still be true for an action to be safe (design.md, \"Key design\ndecisions\", 6).",
+      "oneOf": [
+        {
+          "description": "The file is unchanged since planning.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "file-unchanged"
+            },
+            "path": {
+              "description": "The file.",
+              "type": "string"
+            },
+            "size": {
+              "description": "Its length.",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            },
+            "blake3": {
+              "description": "Its `blake3` hash, in hex.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "size",
+            "blake3"
+          ]
+        },
+        {
+          "description": "The folder's listing is unchanged since planning.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "dir-unchanged"
+            },
+            "path": {
+              "description": "The folder.",
+              "type": "string"
+            },
+            "listing": {
+              "description": "A hash of its entries' names, sizes and modification times.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "listing"
+          ]
+        },
+        {
+          "description": "Nothing exists at the path.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "absent"
+            },
+            "path": {
+              "description": "The path.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        },
+        {
+          "description": "Something exists at the path.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "present"
+            },
+            "path": {
+              "description": "The path.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "path"
+          ]
+        }
+      ]
+    },
+    "OptInId": {
+      "description": "An edit to the record that happens only when the user asks for it and types its\nphrase (REQ-8).",
+      "oneOf": [
+        {
+          "description": "Rewrite the `cwd` recorded on transcript lines.",
+          "type": "string",
+          "const": "rewrite-sessions"
+        },
+        {
+          "description": "Repoint the `project` field in prompt history.",
+          "type": "string",
+          "const": "rewrite-history"
+        }
+      ]
+    },
+    "LeftUnchanged": {
+      "description": "Something deliberately left as it is, with how many and what would change it\n(3.0.2).",
+      "type": "object",
+      "properties": {
+        "what": {
+          "description": "What's left, such as \"recorded paths in sessions\".",
+          "type": "string"
+        },
+        "count": {
+          "description": "How many.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "changed_by": {
+          "description": "The opt-in or flag that would change it, such as `--rewrite-sessions`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_leftover": {
+          "description": "Where the leftover search should expect it.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LeftoverPattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "what",
+        "count"
+      ]
+    },
+    "LeftoverPattern": {
+      "description": "Where a leftover of the source path is expected after a move (design.md, \"Key\ndesign decisions\", 17).",
+      "type": "object",
+      "properties": {
+        "files": {
+          "description": "The files it's expected in, as a pattern relative to a root, such as\n`projects/*/*.jsonl`.",
+          "type": "string"
+        },
+        "field": {
+          "description": "The JSON field it's expected in, if any, such as `cwd`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "files"
+      ]
+    },
+    "OptInOffer": {
+      "description": "An opt-in an adapter offers, with what it would change (8.0.3).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Which opt-in.",
+          "$ref": "#/$defs/OptInId"
+        },
+        "phrase": {
+          "description": "The phrase to type.",
+          "type": "string"
+        },
+        "counts": {
+          "description": "What it would change, per file.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileCount"
+          }
+        },
+        "requested": {
+          "description": "Whether the user asked for it this run.",
+          "type": "boolean"
+        },
+        "applied": {
+          "description": "Whether it was applied. Only a report sets this.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "phrase",
+        "counts",
+        "requested",
+        "applied"
+      ]
+    },
+    "FileCount": {
+      "description": "How many matches an opt-in would change in one file.",
+      "type": "object",
+      "properties": {
+        "file": {
+          "description": "The file.",
+          "type": "string"
+        },
+        "count": {
+          "description": "How many.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "file",
+        "count"
+      ]
+    },
+    "Count": {
+      "description": "A labelled count, such as (\"sessions the picker lists\", 2).",
+      "type": "object",
+      "properties": {
+        "label": {
+          "description": "What's counted.",
+          "type": "string"
+        },
+        "value": {
+          "description": "How many.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ]
+    }
+  }
+}

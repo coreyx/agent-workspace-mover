@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Report",
+  "description": "What a run did (1.0.6). Its three sections are always present, even when empty (1.6).",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "description": "The schema name and version: [`REPORT_SCHEMA`].",
+      "type": "string"
+    },
+    "move_id": {
+      "description": "The move's id, when one was recorded.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "outcome": {
+      "description": "How it ended.",
+      "$ref": "#/$defs/Outcome"
+    },
+    "done": {
+      "description": "What was done.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReportItem"
+      }
+    },
+    "left_unchanged": {
+      "description": "What was deliberately left unchanged.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LeftUnchanged"
+      }
+    },
+    "couldnt_do": {
+      "description": "What couldn't be done, and why.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ReportItem"
+      }
+    },
+    "warnings": {
+      "description": "Warnings, such as unexpected leftovers.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Notice"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "outcome",
+    "done",
+    "left_unchanged",
+    "couldnt_do",
+    "warnings"
+  ],
+  "$defs": {
+    "Outcome": {
+      "description": "How a run ended. Each maps to one exit code (design.md, \"Exit codes\").",
+      "oneOf": [
+        {
+          "description": "Everything planned was done and verified.",
+          "type": "string",
+          "const": "succeeded"
+        },
+        {
+          "description": "Done, with warnings or things it couldn't do.",
+          "type": "string",
+          "const": "succeeded-with-warnings"
+        },
+        {
+          "description": "Nothing changed, by choice: a dry run, or a declined go-ahead.",
+          "type": "string",
+          "const": "nothing-changed"
+        },
+        {
+          "description": "Checks found blockers, and nothing changed.",
+          "type": "string",
+          "const": "blocked"
+        },
+        {
+          "description": "It failed, and was rolled back automatically.",
+          "type": "string",
+          "const": "rolled-back"
+        },
+        {
+          "description": "It failed or was interrupted, and needs `resume` or `rollback`.",
+          "type": "string",
+          "const": "needs-attention"
+        }
+      ]
+    },
+    "ReportItem": {
+      "description": "One line of a report.",
+      "type": "object",
+      "properties": {
+        "adapter": {
+          "description": "The adapter it concerns, or `core`.",
+          "type": "string"
+        },
+        "summary": {
+          "description": "What was done or not done.",
+          "type": "string"
+        },
+        "code": {
+          "description": "A stable code for things not done, such as `git-missing`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adapter",
+        "summary"
+      ]
+    },
+    "LeftUnchanged": {
+      "description": "Something deliberately left as it is, with how many and what would change it\n(3.0.2).",
+      "type": "object",
+      "properties": {
+        "what": {
+          "description": "What's left, such as \"recorded paths in sessions\".",
+          "type": "string"
+        },
+        "count": {
+          "description": "How many.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "changed_by": {
+          "description": "The opt-in or flag that would change it, such as `--rewrite-sessions`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected_leftover": {
+          "description": "Where the leftover search should expect it.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LeftoverPattern"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "what",
+        "count"
+      ]
+    },
+    "LeftoverPattern": {
+      "description": "Where a leftover of the source path is expected after a move (design.md, \"Key\ndesign decisions\", 17).",
+      "type": "object",
+      "properties": {
+        "files": {
+          "description": "The files it's expected in, as a pattern relative to a root, such as\n`projects/*/*.jsonl`.",
+          "type": "string"
+        },
+        "field": {
+          "description": "The JSON field it's expected in, if any, such as `cwd`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "files"
+      ]
+    },
+    "Notice": {
+      "description": "Something worth knowing that doesn't stop the run.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "A stable code.",
+          "type": "string"
+        },
+        "message": {
+          "description": "What to know.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    }
+  }
+}
