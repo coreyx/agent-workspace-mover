@@ -102,7 +102,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     5. Implement the exit-code mapping in one place in `awm`, following design.md's exit code table.
     6. Test that `plan --json` validates against its schema (22.1) and that standard output holds exactly one JSON document with human messages on standard error (22.3).
 
-- [ ] **TASK-10: Implement the executor and moving the workspace folder**
+- [x] **TASK-10: Implement the executor and moving the workspace folder**
   - **Associated Acceptance Criteria**: `1.3`, `1.4`, `5.4`, `5.5`, `12.1`
   - **Concrete Steps**:
     1. Implement the executor's phases in design.md's "Order of steps": recheck, back up, then each phase in order. Write each step's record before and after it runs.

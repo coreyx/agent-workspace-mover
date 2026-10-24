@@ -334,6 +334,19 @@ impl MoveRecord {
         self.read_json("report.json")
     }
 
+    /// Records every backup made before the steps began, in `backups.json`.
+    pub fn write_backups(&self, entries: &[BackupEntry]) -> io::Result<()> {
+        self.write_json("backups.json", &entries)
+    }
+
+    /// The backups made before the steps began, or none if no file was backed up.
+    pub fn backups(&self) -> io::Result<Vec<BackupEntry>> {
+        match self.read_json("backups.json") {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(Vec::new()),
+            other => other,
+        }
+    }
+
     /// Writes (or rewrites) one step's record. It's on disk when this returns.
     pub fn write_step(&self, step: &StepRecord) -> io::Result<()> {
         self.write_json(&format!("steps/{:04}.json", step.index), step)

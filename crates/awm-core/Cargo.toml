@@ -11,6 +11,8 @@ authors.workspace = true
 [dependencies]
 aho-corasick = "1.1"
 blake3 = "1.8"
+# Fail points compile to nothing unless the failpoints feature is on, as it is in tests.
+fail = "0.5"
 schemars = "1.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "arbitrary_precision"] }
@@ -32,6 +34,7 @@ windows = { version = "0.62", features = [
 
 [dev-dependencies]
 awm-testkit.workspace = true
+fail = { version = "0.5", features = ["failpoints"] }
 proptest = "1.12"
 
 [lints]

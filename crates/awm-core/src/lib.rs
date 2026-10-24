@@ -44,3 +44,6 @@ pub mod plan;
 
 /// The adapter interface, and assembling a plan from adapters' contributions.
 pub mod adapter;
+
+/// The executor: the only code that changes the machine.
+pub mod executor;
