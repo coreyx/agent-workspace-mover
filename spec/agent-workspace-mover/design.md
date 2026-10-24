@@ -91,7 +91,7 @@ A rescue (REQ-15) is the same plan without step 3. An undo (REQ-14) is a plan bu
 | Need | Windows | macOS | Linux |
 |---|---|---|---|
 | Processes, parents, working folders | `sysinfo` (reads the process environment block, including 32-bit processes) | `sysinfo` | `sysinfo` |
-| Files held open | Restart Manager | `libproc` through `libc`, falling back to `lsof` | `/proc/<pid>/fd` |
+| Files held open | Restart Manager | `libproc` through `libc` (no `lsof` fallback: without root it can't see what `libproc` can't, so processes neither can read are counted as uninspectable instead) | `/proc/<pid>/fd` |
 | Volume identity | volume serial number | `st_dev` | `st_dev` |
 | Case sensitivity | case-insensitive | asked per volume (`pathconf _PC_CASE_SENSITIVE`) | case-sensitive |
 | Files only the user can read | protected access-control list for the current user's account | `0600`/`0700` | `0600`/`0700` |

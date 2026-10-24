@@ -79,7 +79,7 @@ For transcripts, a small in-house JSON scanner changes one field's value without
   - the **Restart Manager** API, to name processes holding files open under the source
   - parent-process walking, to recognise the session the tool was launched from (20.0.3)
 - **Linux:** `/proc/<pid>/cwd` and `/proc/<pid>/fd`, read directly.
-- **macOS:** `libproc` system calls through the `libc` crate, with `lsof` (always present on macOS) as a fallback.
+- **macOS:** `libproc` system calls through the `libc` crate. There's no `lsof` fallback: without root, `lsof` can't see the processes `libproc` can't, so those are counted as uninspectable instead (owner's decision, 2026-10-23).
 
 **Why:**
 - On Windows, a held folder makes the move fail (2.0.4, 20.1), so naming the holder is a core feature.
