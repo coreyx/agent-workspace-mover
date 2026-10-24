@@ -47,3 +47,6 @@ pub mod adapter;
 
 /// The executor: the only code that changes the machine.
 pub mod executor;
+
+/// The core's own checks before a move, and the folder move they lead to.
+pub mod checks;

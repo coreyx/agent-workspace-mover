@@ -61,6 +61,9 @@ pub trait Platform: Send + Sync {
 
     /// Makes `path` readable by the current user only.
     fn restrict_to_user(&self, path: &Path) -> io::Result<()>;
+
+    /// The bytes the current user can still write on `path`'s volume (2.0.8).
+    fn available_space(&self, path: &Path) -> io::Result<u64>;
 }
 
 /// The machine this program runs on.
@@ -108,6 +111,13 @@ impl Platform for Host {
 
     fn restrict_to_user(&self, path: &Path) -> io::Result<()> {
         restrict_to_user(path)
+    }
+
+    fn available_space(&self, path: &Path) -> io::Result<u64> {
+        #[cfg(windows)]
+        return windows_holders::available_space(path);
+        #[cfg(unix)]
+        return unix_holders::available_space(path);
     }
 }
 
@@ -163,6 +173,19 @@ pub fn restrict_to_user(path: &Path) -> io::Result<()> {
     return windows::restrict_to_user(path);
     #[cfg(unix)]
     return unix::restrict_to_user(path);
+}
+
+/// Whether the current user can change the folder `path`'s contents, without changing
+/// anything to find out: `Some` on Unix, from `access(2)`, and `None` on Windows, where
+/// there's no cheap honest answer and the rename itself is the test (2.0.8).
+pub fn writable(path: &Path) -> Option<bool> {
+    #[cfg(unix)]
+    return unix_holders::writable(path);
+    #[cfg(windows)]
+    {
+        let _ = path;
+        None
+    }
 }
 
 /// Whether `path` is readable by the current user only, as [`restrict_to_user`] leaves it.
@@ -267,5 +290,15 @@ mod tests {
         assert!(snapshot.get(std::process::id()).is_some());
         let report = Host.holders(&snapshot, dir.path(), Some(Duration::from_secs(10)));
         assert!(report.holders.is_empty());
+    }
+
+    #[test]
+    fn reports_free_space_and_fails_for_missing_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(Host.available_space(dir.path()).unwrap() > 0);
+        assert!(
+            Host.available_space(&dir.path().join("missing").join("deeper"))
+                .is_err()
+        );
     }
 }

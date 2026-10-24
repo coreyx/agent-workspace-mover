@@ -13,7 +13,9 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
 use windows::Win32::Foundation::{ERROR_MORE_DATA, ERROR_SUCCESS, HANDLE};
-use windows::Win32::Storage::FileSystem::{BY_HANDLE_FILE_INFORMATION, GetFileInformationByHandle};
+use windows::Win32::Storage::FileSystem::{
+    BY_HANDLE_FILE_INFORMATION, GetDiskFreeSpaceExW, GetFileInformationByHandle,
+};
 use windows::Win32::System::RestartManager::{
     CCH_RM_SESSION_KEY, RM_PROCESS_INFO, RmEndSession, RmGetList, RmRegisterResources,
     RmStartSession,
@@ -156,6 +158,15 @@ pub fn volume_id(path: &Path) -> io::Result<VolumeId> {
     unsafe { GetFileInformationByHandle(HANDLE(file.as_raw_handle()), &mut info) }
         .map_err(io::Error::other)?;
     Ok(VolumeId(u64::from(info.dwVolumeSerialNumber)))
+}
+
+/// The bytes available to the current user on `path`'s volume, allowing for quotas.
+pub fn available_space(path: &Path) -> io::Result<u64> {
+    let name: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut available = 0u64;
+    unsafe { GetDiskFreeSpaceExW(PCWSTR(name.as_ptr()), Some(&mut available), None, None) }
+        .map_err(io::Error::other)?;
+    Ok(available)
 }
 
 /// Sets `path`'s creation time, for a file or a folder.

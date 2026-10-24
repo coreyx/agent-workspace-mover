@@ -591,6 +591,9 @@ mod tests {
         fn restrict_to_user(&self, path: &Path) -> io::Result<()> {
             Host.restrict_to_user(path)
         }
+        fn available_space(&self, path: &Path) -> io::Result<u64> {
+            Host.available_space(path)
+        }
     }
 
     /// A temporary state folder, a record in it, and a workspace with a few files.

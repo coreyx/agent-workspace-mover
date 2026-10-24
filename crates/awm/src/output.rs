@@ -7,7 +7,7 @@ use serde::Serialize;
 
 /// Writes `value` to `out` as one JSON document, followed by a newline. Nothing else
 /// may be written to standard output in `--json` mode.
-pub fn write_json<T: Serialize>(value: &T, out: &mut impl Write) -> io::Result<()> {
+pub fn write_json<T: Serialize>(value: &T, out: &mut (impl Write + ?Sized)) -> io::Result<()> {
     serde_json::to_writer_pretty(&mut *out, value).map_err(io::Error::other)?;
     out.write_all(b"\n")?;
     out.flush()
@@ -15,7 +15,7 @@ pub fn write_json<T: Serialize>(value: &T, out: &mut impl Write) -> io::Result<(
 
 /// Writes a human-readable message for the user, which always goes to standard error
 /// so it can't mix with JSON on standard output.
-pub fn note(err: &mut impl Write, message: &str) -> io::Result<()> {
+pub fn note(err: &mut (impl Write + ?Sized), message: &str) -> io::Result<()> {
     writeln!(err, "{message}")
 }
 

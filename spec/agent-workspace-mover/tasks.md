@@ -112,7 +112,7 @@ Once this is done, `agent-workspace-mover move` checks, plans, confirms and move
     5. Implement each action type's probe (not started, done or partial), starting with `MoveTree`.
     6. Add `fail` points at every step boundary. Test that a backup exists, with the right hash, before each change (12.1); that a same-volume move performs one rename (1.3); a cross-volume move with injected verification failure (1.4); a source reached through a junction or symlink (5.4); and a Windows path over 260 characters (5.5).
 
-- [ ] **TASK-11: Implement the checks and the `move` and `plan` commands**
+- [x] **TASK-11: Implement the checks and the `move` and `plan` commands**
   - **Associated Acceptance Criteria**: `1.2`, `1.6`, `2.1`, `2.2`, `2.3`, `2.6`, `3.4`, `3.5`, `3.6`, `4.2`
   - **Concrete Steps**:
     1. Implement the core checks: target exists, source missing, one under the other, the refused locations (drive root, home, folders containing home, agent data folders), permissions, free space for a cross-volume copy, and holders. Collect every blocker before stopping (2.0.9).

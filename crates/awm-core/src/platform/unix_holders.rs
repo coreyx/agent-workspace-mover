@@ -72,6 +72,30 @@ pub fn volume_id(path: &Path) -> io::Result<VolumeId> {
     Ok(VolumeId(fs::metadata(path)?.dev()))
 }
 
+/// Whether the current user may create and remove entries in the folder `path`.
+#[allow(unsafe_code)] // access has no safe wrapper in std.
+pub fn writable(path: &Path) -> Option<bool> {
+    use std::os::unix::ffi::OsStrExt;
+    let c_path = std::ffi::CString::new(path.as_os_str().as_bytes()).ok()?;
+    // SAFETY: c_path is NUL-terminated.
+    Some(unsafe { libc::access(c_path.as_ptr(), libc::W_OK | libc::X_OK) } == 0)
+}
+
+/// The bytes available to the current user on `path`'s volume, from `statvfs`.
+#[allow(unsafe_code)] // statvfs has no safe wrapper in std.
+pub fn available_space(path: &Path) -> io::Result<u64> {
+    use std::os::unix::ffi::OsStrExt;
+    let c_path = std::ffi::CString::new(path.as_os_str().as_bytes())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "the path holds a NUL byte"))?;
+    let mut stats: libc::statvfs = unsafe { std::mem::zeroed() };
+    // SAFETY: c_path is NUL-terminated and stats is a valid, writable statvfs.
+    if unsafe { libc::statvfs(c_path.as_ptr(), &mut stats) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // The field widths differ between platforms, so widen both.
+    Ok((stats.f_bavail as u64).saturating_mul(stats.f_frsize as u64))
+}
+
 /// Whether names on `path`'s volume are case-sensitive.
 pub fn case_rule(path: &Path) -> CaseRule {
     #[cfg(target_os = "macos")]
