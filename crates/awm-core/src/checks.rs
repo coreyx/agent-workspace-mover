@@ -74,6 +74,32 @@ fn resolved(path: &Path) -> Option<PathBuf> {
     fs::canonicalize(path).ok().map(strip_verbatim)
 }
 
+/// `path` as given, and, when different, with links and short names resolved. A path
+/// that doesn't exist yet is resolved through its nearest existing ancestor.
+fn forms_of(path: &Path) -> Vec<PathBuf> {
+    let mut ancestor = path;
+    let mut rest = Vec::new();
+    let real = loop {
+        if let Some(real) = resolved(ancestor) {
+            break Some(
+                rest.iter()
+                    .rev()
+                    .fold(real, |p: PathBuf, part| p.join(part)),
+            );
+        }
+        match (ancestor.parent(), ancestor.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                ancestor = parent;
+            }
+            _ => break None,
+        }
+    };
+    let mut forms = vec![path.to_path_buf()];
+    forms.extend(real.filter(|real| real != path));
+    forms
+}
+
 /// Whether `inner` is `outer` or under it, under `case`.
 fn is_within(outer: &Path, inner: &Path, case: CaseRule) -> bool {
     match (PathMapping::for_host(outer, outer, case), inner.to_str()) {
@@ -212,25 +238,33 @@ pub fn prepare_move(
             source.display()
         )));
     }
-    if is_within(&source, &locations.home, case) {
+    // The source is compared in its resolved form, so these locations are compared in
+    // both forms: the environment may name them through a link (macOS's /var) or a
+    // Windows 8.3 short name, which resolving turns into the long one.
+    if forms_of(&locations.home)
+        .iter()
+        .any(|home| is_within(&source, home, case))
+    {
         blockers.push(refuse(format!(
             "{} is or contains the home folder.",
             source.display()
         )));
     }
-    for managed in [
+    let managed = [
         &locations.claude_dir,
         &locations.claude_json,
         &locations.vscode_user,
         &locations.state,
-    ] {
-        if is_within(&source, managed, case) || is_within(managed, &source, case) {
-            blockers.push(refuse(format!(
-                "{} holds agent or editor data the tool manages.",
-                source.display()
-            )));
-            break;
-        }
+    ];
+    let holds_managed = managed
+        .iter()
+        .flat_map(|p| forms_of(p))
+        .any(|managed| is_within(&source, &managed, case) || is_within(&managed, &source, case));
+    if holds_managed {
+        blockers.push(refuse(format!(
+            "{} holds agent or editor data the tool manages.",
+            source.display()
+        )));
     }
 
     let mut volume_relation = VolumeRelation::Same;
@@ -553,23 +587,54 @@ mod tests {
         assert!(!prepared.findings.holders.holders.is_empty());
     }
 
-    #[test]
-    fn a_source_reached_through_a_link_resolves_to_the_real_folder() {
-        let f = Fixture::new();
-        let link = f.root.join("link");
+    /// Makes `link` point at the folder `target`: a symlink on Unix, a junction on Windows.
+    fn link_folder(target: &Path, link: &Path) {
         #[cfg(unix)]
-        std::os::unix::fs::symlink(f.source.parent().unwrap(), &link).unwrap();
+        std::os::unix::fs::symlink(target, link).unwrap();
         #[cfg(windows)]
         {
             let made = std::process::Command::new("cmd")
                 .args(["/c", "mklink", "/J"])
-                .arg(&link)
-                .arg(f.source.parent().unwrap())
+                .arg(link)
+                .arg(target)
                 .stdout(std::process::Stdio::null())
                 .status()
                 .unwrap();
             assert!(made.success());
         }
+    }
+
+    // 2.0.3, when the environment names the home folder through a link, as macOS's /var
+    // does, while the source is resolved.
+    #[test]
+    fn refuses_a_home_folder_named_through_a_link() {
+        let mut f = Fixture::new();
+        let link = f.root.join("link-to-root");
+        link_folder(&f.root, &link);
+        f.locations.home = link.join("home");
+        f.locations.state = link.join("not-yet").join("state");
+        let prepared = f.check(&f.root.join("home"), &f.root.join("new").join("x"));
+        assert!(
+            codes(&prepared).contains(&"refused-location".to_string()),
+            "{:?}",
+            prepared.findings.blockers
+        );
+        assert!(
+            forms_of(&link.join("missing").join("x")).contains(&f.root.join("missing").join("x")),
+            "resolved through the nearest existing ancestor"
+        );
+        assert_eq!(
+            forms_of(&f.root),
+            vec![f.root.clone()],
+            "an already resolved path has one form"
+        );
+    }
+
+    #[test]
+    fn a_source_reached_through_a_link_resolves_to_the_real_folder() {
+        let f = Fixture::new();
+        let link = f.root.join("link");
+        link_folder(f.source.parent().unwrap(), &link);
         let prepared = f.check(&link.join("repo"), &f.root.join("new").join("repo"));
         assert_eq!(prepared.source, f.source);
         assert!(
